@@ -1,0 +1,1220 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>إدارة الطلبات</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=El+Messiri:wght@500;600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap">
+<style>
+/* ---------------------------------------------------------------
+   طبقة التوكِنز
+   تخطيط: قائمة جانبية ثابتة + محتوى رئيسي يتبدّل حسب التبويب (SPA بسيطة)
+----------------------------------------------------------------*/
+:root{
+  --bg:#F4F6F3;
+  --surface:#FFFFFF;
+  --surface-2:#EDF1EC;
+  --border:#DDE4DA;
+  --ink:#1B241D;
+  --ink-muted:#62705F;
+  --accent:#3A6A52;
+  --accent-ink:#FFFFFF;
+  --accent-soft:#E3EEE6;
+  --warn:#9C6A1E;
+  --warn-soft:#F6ECDA;
+  --danger:#AC3E33;
+  --danger-soft:#F6E4E0;
+  --success:#2F7D4F;
+  --success-soft:#E2F1E6;
+  --info:#2E6E8E;
+  --info-soft:#E1EFF4;
+  --font-display:'El Messiri', 'Segoe UI', Tahoma, sans-serif;
+  --font-body:'IBM Plex Sans Arabic','Segoe UI',Tahoma,sans-serif;
+  --shadow:0 1px 2px rgba(27,36,29,.06), 0 8px 24px -12px rgba(27,36,29,.18);
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#11150F; --surface:#181D15; --surface-2:#1F2519; --border:#2C3426;
+    --ink:#E9EEE4; --ink-muted:#99A491; --accent:#6FB592; --accent-ink:#0D1510;
+    --accent-soft:#1E2E24; --warn:#D6A24E; --warn-soft:#2E2718; --danger:#E08478;
+    --danger-soft:#302019; --success:#7BC79B; --success-soft:#1C2B20;
+    --info:#7FB8D6; --info-soft:#17242B; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#11150F; --surface:#181D15; --surface-2:#1F2519; --border:#2C3426;
+  --ink:#E9EEE4; --ink-muted:#99A491; --accent:#6FB592; --accent-ink:#0D1510;
+  --accent-soft:#1E2E24; --warn:#D6A24E; --warn-soft:#2E2718; --danger:#E08478;
+  --danger-soft:#302019; --success:#7BC79B; --success-soft:#1C2B20;
+  --info:#7FB8D6; --info-soft:#17242B; color-scheme:dark;
+}
+
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  direction:rtl;
+  background:var(--bg);
+  color:var(--ink);
+  font-family:var(--font-body);
+  font-size:14px;
+  line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,.brand,.nav-label{font-family:var(--font-display)}
+h1,h2,h3{text-wrap:balance;margin:0}
+.tabular{font-variant-numeric:tabular-nums}
+button{font-family:inherit}
+a{color:inherit}
+img{max-width:100%}
+[hidden]{display:none!important}
+
+/* ---------- تخطيط ---------- */
+.app{display:flex;min-height:100vh}
+.sidebar{
+  width:230px;flex:0 0 230px;background:var(--surface);border-left:1px solid var(--border);
+  padding:20px 16px;padding-right:max(16px, env(safe-area-inset-right,0px));
+  display:flex;flex-direction:column;gap:22px;position:sticky;top:0;align-self:flex-start;
+  height:100vh;overflow-y:auto;
+}
+.brand{display:flex;align-items:center;gap:10px;padding:4px 6px}
+.brand-mark{
+  width:34px;height:34px;border-radius:9px;background:var(--accent);color:var(--accent-ink);
+  display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;flex:none;
+}
+.brand-text{font-weight:700;font-size:16px}
+.brand-sub{font-size:11px;color:var(--ink-muted);font-family:var(--font-body)}
+
+nav{display:flex;flex-direction:column;gap:3px}
+.nav-item{
+  display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:9px;
+  color:var(--ink-muted);font-size:13.5px;font-weight:500;cursor:pointer;border:1px solid transparent;user-select:none;
+}
+.nav-item:hover{background:var(--surface-2);color:var(--ink)}
+.nav-item.active{background:var(--accent-soft);color:var(--accent);font-weight:700}
+.nav-icon{width:18px;height:18px;flex:none;display:flex;align-items:center;justify-content:center}
+.nav-icon svg{width:100%;height:100%}
+
+.sidebar-foot{margin-top:auto;padding-top:14px;border-top:1px solid var(--border);font-size:11.5px;color:var(--ink-muted)}
+.store-pill{display:flex;align-items:center;gap:6px}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--success)}
+
+.main{flex:1;min-width:0;padding-bottom:40px}
+.topbar{
+  position:sticky;top:0;z-index:5;background:var(--bg);
+  padding:18px max(20px, env(safe-area-inset-right,0px)) 14px max(20px, env(safe-area-inset-left,0px));
+  display:flex;align-items:flex-end;justify-content:space-between;gap:14px;flex-wrap:wrap;
+}
+.topbar-title h1{font-size:21px;font-weight:700}
+.topbar-title p{margin:3px 0 0;color:var(--ink-muted);font-size:12.5px}
+.topbar-actions{display:flex;gap:8px;align-items:center}
+.content{padding:4px max(20px, env(safe-area-inset-right,0px)) 10px max(20px, env(safe-area-inset-left,0px))}
+
+/* ---------- عناصر عامة ---------- */
+.btn{
+  display:inline-flex;align-items:center;gap:7px;padding:9px 15px;border-radius:9px;border:1px solid var(--border);
+  background:var(--surface);color:var(--ink);font-size:13.5px;font-weight:600;cursor:pointer;white-space:nowrap;
+}
+.btn:hover{background:var(--surface-2)}
+.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn-primary:hover{filter:brightness(1.06)}
+.btn-ghost{background:transparent;border-color:transparent}
+.btn-ghost:hover{background:var(--surface-2)}
+.btn-danger{background:transparent;border-color:var(--danger);color:var(--danger)}
+.btn-danger:hover{background:var(--danger-soft)}
+.btn-sm{padding:6px 10px;font-size:12.5px;border-radius:7px}
+.icon{width:15px;height:15px;flex:none}
+.icon svg{width:100%;height:100%}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px}
+.grid{display:grid;gap:14px}
+.kpis{grid-template-columns:repeat(4,1fr);margin-bottom:18px}
+@media (max-width:860px){.kpis{grid-template-columns:repeat(2,1fr)}}
+.kpi{padding:16px 16px 14px;display:flex;flex-direction:column;gap:8px}
+.kpi-top{display:flex;align-items:center;justify-content:space-between}
+.kpi-label{font-size:12px;color:var(--ink-muted);font-weight:600}
+.kpi-icon{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center}
+.kpi-icon svg{width:16px;height:16px}
+.kpi-value{font-size:24px;font-weight:700}
+.kpi-sub{font-size:11.5px;color:var(--ink-muted)}
+
+.section-head{display:flex;align-items:center;justify-content:space-between;margin:26px 0 12px}
+.section-head h2{font-size:15px;font-weight:700}
+.section-head .link{font-size:12.5px;color:var(--accent);font-weight:600;cursor:pointer}
+
+.pill{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;font-size:11.5px;font-weight:700;white-space:nowrap}
+.pill-new{background:var(--info-soft);color:var(--info)}
+.pill-processing{background:var(--warn-soft);color:var(--warn)}
+.pill-ready{background:var(--accent-soft);color:var(--accent)}
+.pill-delivered{background:var(--success-soft);color:var(--success)}
+.pill-cancelled{background:var(--danger-soft);color:var(--danger)}
+
+table{width:100%;border-collapse:collapse;font-size:13px}
+.table-wrap{overflow-x:auto;border-radius:14px}
+thead th{text-align:right;font-size:11.5px;color:var(--ink-muted);font-weight:700;padding:10px 14px;border-bottom:1px solid var(--border);white-space:nowrap}
+tbody td{padding:12px 14px;border-bottom:1px solid var(--border);vertical-align:middle}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:var(--surface-2)}
+.row-main{font-weight:600}
+.row-sub{color:var(--ink-muted);font-size:11.5px;margin-top:2px}
+.cell-actions{display:flex;gap:6px;justify-content:flex-start}
+
+.empty{padding:46px 20px;text-align:center;color:var(--ink-muted)}
+.empty .icon-big{width:40px;height:40px;margin:0 auto 12px;opacity:.55}
+.empty .icon-big svg{width:100%;height:100%}
+.empty strong{display:block;color:var(--ink);margin-bottom:4px;font-size:14px}
+
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.search{flex:1;min-width:160px;display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:8px 12px;color:var(--ink-muted)}
+.search input{border:none;outline:none;background:transparent;color:var(--ink);font-size:13px;width:100%;font-family:inherit}
+.search .icon{opacity:.6}
+.chip-filter{display:flex;gap:6px;flex-wrap:wrap}
+.chip{padding:6px 12px;border-radius:999px;border:1px solid var(--border);background:var(--surface);font-size:12px;font-weight:600;color:var(--ink-muted);cursor:pointer}
+.chip.active{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+
+.bars{display:flex;align-items:flex-end;gap:8px;height:120px;padding:4px 2px}
+.bars.many{gap:4px}
+.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0}
+.bar-track{width:100%;height:92px;display:flex;align-items:flex-end;background:var(--surface-2);border-radius:5px;overflow:hidden}
+.bar-fill{width:100%;background:var(--accent);border-radius:5px 5px 0 0;min-height:3px}
+.bar-label{font-size:10px;color:var(--ink-muted);white-space:nowrap}
+.bar-value{font-size:10px;color:var(--ink-muted)}
+
+.hbar-row{display:flex;align-items:center;gap:10px;padding:8px 0}
+.hbar-name{width:130px;flex:none;font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hbar-track{flex:1;height:9px;background:var(--surface-2);border-radius:5px;overflow:hidden;min-width:0}
+.hbar-fill{height:100%;background:var(--accent);border-radius:5px}
+.hbar-value{width:88px;flex:none;text-align:left;font-size:12px;color:var(--ink-muted)}
+
+.status-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+@media (max-width:760px){.status-grid{grid-template-columns:repeat(2,1fr)}}
+.status-card{padding:12px;border-radius:11px;text-align:center}
+.status-card .n{font-size:19px;font-weight:700}
+.status-card .l{font-size:11px;margin-top:2px}
+
+.two-col{display:grid;grid-template-columns:1.4fr 1fr;gap:16px}
+@media (max-width:900px){.two-col{grid-template-columns:1fr}}
+
+.stock-low{color:var(--danger);font-weight:700}
+.stock-ok{color:var(--ink-muted)}
+
+/* ---------- نموذج/مودال ---------- */
+.overlay{
+  position:fixed;inset:0;background:rgba(10,14,9,.42);display:flex;align-items:center;justify-content:center;padding:18px;
+  padding-top:max(18px, env(safe-area-inset-top,0px));padding-bottom:max(18px, env(safe-area-inset-bottom,0px));
+  z-index:50;opacity:0;pointer-events:none;transition:opacity .15s ease;
+}
+.overlay.open{opacity:1;pointer-events:auto}
+.modal{background:var(--surface);border-radius:16px;width:100%;max-width:520px;max-height:88vh;overflow-y:auto;box-shadow:var(--shadow);transform:translateY(8px);transition:transform .15s ease}
+.overlay.open .modal{transform:translateY(0)}
+.modal-head{display:flex;align-items:center;justify-content:space-between;padding:18px 20px 4px}
+.modal-head h3{font-size:16px}
+.modal-body{padding:14px 20px 20px;display:flex;flex-direction:column;gap:14px}
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-size:12px;font-weight:600;color:var(--ink-muted)}
+.field input,.field select,.field textarea{border:1px solid var(--border);border-radius:9px;padding:9px 11px;font-size:13.5px;background:var(--bg);color:var(--ink);font-family:inherit;width:100%}
+.field input:focus,.field select:focus,.field textarea:focus{outline:2px solid var(--accent);outline-offset:0;border-color:var(--accent)}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.item-row{display:grid;grid-template-columns:1fr 64px minmax(72px,auto) 30px;gap:8px;align-items:center}
+.item-row select,.item-row input{padding:8px 9px;font-size:13px}
+.items-total{display:flex;justify-content:space-between;align-items:center;padding-top:8px;border-top:1px dashed var(--border);font-weight:700}
+.modal-foot{display:flex;justify-content:flex-end;gap:8px;padding:4px 20px 20px}
+.remove-row{width:28px;height:28px;border-radius:7px;border:1px solid var(--border);background:var(--surface);color:var(--danger);cursor:pointer;display:flex;align-items:center;justify-content:center;flex:none}
+
+.banner{display:flex;align-items:center;gap:10px;background:var(--warn-soft);color:var(--warn);border-radius:10px;padding:10px 14px;font-size:12.5px;margin:0 0 16px;font-weight:600}
+.banner.danger{background:var(--danger-soft);color:var(--danger)}
+
+.mobile-tabs{display:none}
+@media (max-width:720px){
+  .sidebar{display:none}
+  .mobile-tabs{
+    display:flex;position:fixed;bottom:0;right:0;left:0;z-index:20;background:var(--surface);border-top:1px solid var(--border);
+    padding:6px max(10px, env(safe-area-inset-right,0px)) max(6px, env(safe-area-inset-bottom,0px)) max(10px, env(safe-area-inset-left,0px));
+    justify-content:space-around;
+  }
+  .mobile-tab{display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--ink-muted);font-size:9.5px;padding:4px 6px;cursor:pointer;font-weight:600}
+  .mobile-tab.active{color:var(--accent)}
+  .mobile-tab .icon{width:18px;height:18px}
+  .main{padding-bottom:78px}
+  .kpis{grid-template-columns:repeat(2,1fr)}
+  .status-grid{grid-template-columns:repeat(2,1fr)}
+}
+
+/* ---------- دخول / تجربة مجانية / اشتراك ---------- */
+.auth-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;padding-top:max(24px, env(safe-area-inset-top,0px));padding-bottom:max(24px, env(safe-area-inset-bottom,0px))}
+.auth-card{width:100%;max-width:380px;padding:30px 26px;display:flex;flex-direction:column;gap:16px}
+.auth-tabs{display:flex;gap:4px;background:var(--surface-2);padding:4px;border-radius:10px}
+.auth-tab{flex:1;text-align:center;padding:8px;border-radius:7px;font-size:12.5px;font-weight:700;color:var(--ink-muted);cursor:pointer}
+.auth-tab.active{background:var(--surface);color:var(--accent)}
+.auth-error{background:var(--danger-soft);color:var(--danger);border-radius:9px;padding:9px 12px;font-size:12.5px;font-weight:600}
+.auth-note{font-size:11.5px;color:var(--ink-muted);text-align:center;line-height:1.6}
+.trial-banner{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--accent-soft);color:var(--accent);border-radius:10px;padding:9px 14px;font-size:12px;font-weight:700;margin:0 0 16px;flex-wrap:wrap}
+.expired-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;padding-top:max(24px, env(safe-area-inset-top,0px));padding-bottom:max(24px, env(safe-area-inset-bottom,0px))}
+.expired-card{width:100%;max-width:420px;padding:34px 28px;text-align:center;display:flex;flex-direction:column;gap:12px;align-items:center}
+.expired-price{font-size:30px;font-weight:700;color:var(--accent)}
+.pay-box{background:var(--surface-2);border-radius:10px;padding:14px;width:100%;text-align:right;font-size:13px;display:flex;flex-direction:column;gap:7px;line-height:1.6}
+</style>
+</head>
+<body>
+
+<div class="app" id="app-shell" hidden>
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">ط</div>
+      <div>
+        <div class="brand-text">إدارة الطلبات</div>
+        <div class="brand-sub">لصاحب المشروع الصغير</div>
+      </div>
+    </div>
+    <nav id="nav"></nav>
+    <div class="sidebar-foot">
+      <div class="store-pill" id="storage-status"><span class="dot"></span><span>جاري الاتصال بقاعدة البيانات…</span></div>
+      <button class="btn btn-ghost btn-sm" id="btn-logout" style="width:100%;margin-top:8px;justify-content:center">تسجيل الخروج</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="topbar-title">
+        <h1 id="page-title">لوحة التحكم</h1>
+        <p id="page-sub">نظرة عامة على أداء المحل اليوم</p>
+      </div>
+      <div class="topbar-actions" id="page-actions"></div>
+    </header>
+    <div class="content" id="view-root"></div>
+  </main>
+</div>
+
+<div id="auth-root" class="auth-wrap" hidden></div>
+<div id="expired-root" class="expired-wrap" hidden></div>
+
+<nav class="mobile-tabs" id="mobile-nav"></nav>
+<div class="overlay" id="overlay"><div class="modal" id="modal"></div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+(function(){
+"use strict";
+
+/* ===================================================================
+   إعدادات قاعدة البيانات (Supabase)
+   غيّر القيمتين دول بالقيم اللي هتاخدها من مشروعك على supabase.com
+   Settings → API → Project URL / anon public key
+=================================================================== */
+const SUPABASE_URL = "https://bxhlntdvuoeyauatkbgi.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_IptgxyGIz_at7GxZM-EZ7w_9hZUb5-V";
+
+/* إعدادات التجربة المجانية والاشتراك — عدّلها زي ما يناسبك */
+const TRIAL_DAYS = 3;
+const SUBSCRIPTION_PRICE = "50 جنيه";
+const PAYMENT_METHOD = "فودافون كاش / InstaPay";
+const PAYMENT_PHONE = "01095868933";   /* رقمك لاستقبال التحويل */
+const SUPPORT_CONTACT = "01095868933"; /* رقمك لتأكيد الدفع (واتساب مثلًا) */
+/* =================================================================== */
+
+/* ---------------------------------------------------------------
+   أيقونات SVG صغيرة (بدون مكتبات خارجية)
+----------------------------------------------------------------*/
+const ICONS = {
+  dashboard:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>',
+  orders:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16l-1.5 11a2 2 0 0 1-2 1.7H7.5a2 2 0 0 1-2-1.7L4 7Z"/><path d="M8 7V5a4 4 0 0 1 8 0v2"/></svg>',
+  customers:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.3"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17.3" cy="8.6" r="2.6"/><path d="M15.5 13.2a5.2 5.2 0 0 1 6 5"/></svg>',
+  inventory:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 7.5 12 3l8.5 4.5v9L12 21l-8.5-4.5v-9Z"/><path d="M3.5 7.5 12 12l8.5-4.5M12 12v9"/></svg>',
+  reports:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V10M11 19V5M18 19v-7"/></svg>',
+  plus:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+  search:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.3-3.3"/></svg>',
+  edit:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>',
+  trash:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>',
+  close:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>',
+  box:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 7.5 12 3l8.5 4.5v9L12 21l-8.5-4.5v-9Z"/></svg>',
+  cash:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6" width="19" height="12" rx="2"/><circle cx="12" cy="12" r="3"/></svg>',
+  clock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>',
+  warn:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><path d="M10.3 3.9 2 18a1.6 1.6 0 0 0 1.4 2.4h17.2A1.6 1.6 0 0 0 22 18L13.7 3.9a1.6 1.6 0 0 0-2.8 0Z"/><path d="M12 16.2h.01"/></svg>',
+};
+function icon(name){return ICONS[name]||'';}
+
+/* ---------------------------------------------------------------
+   الحالة والإعدادات
+----------------------------------------------------------------*/
+const STATUS = {
+  new:        {label:'جديد',            cls:'pill-new'},
+  processing: {label:'قيد التجهيز',      cls:'pill-processing'},
+  ready:      {label:'جاهز للتسليم',     cls:'pill-ready'},
+  delivered:  {label:'تم التسليم',       cls:'pill-delivered'},
+  cancelled:  {label:'ملغي',             cls:'pill-cancelled'},
+};
+const STATUS_ORDER = ['new','processing','ready','delivered','cancelled'];
+const UNITS = ['قطعة','كيلو','جرام','علبة','كرتونة','متر','لتر'];
+
+const NAV = [
+  {id:'dashboard', label:'لوحة التحكم', sub:'نظرة عامة على أداء المحل اليوم', icon:'dashboard'},
+  {id:'orders',    label:'الطلبات',      sub:'كل طلبات العملاء وحالاتها',     icon:'orders'},
+  {id:'customers', label:'العملاء',      sub:'بيانات العملاء وسجل تعاملهم',   icon:'customers'},
+  {id:'inventory', label:'المخزون',      sub:'المنتجات والكميات المتاحة',     icon:'inventory'},
+  {id:'reports',   label:'التقارير',     sub:'المبيعات والأداء بالأرقام',     icon:'reports'},
+];
+
+const state = {
+  view: localStorage.getItem('om_last_view') || 'dashboard',
+  customers: [], products: [], orders: [],
+  ready: false, writable: true,
+  orderFilter: 'all', orderSearch: '',
+};
+
+let sb = null;
+const authState = { session:null, profile:null, checked:false, authView:'login', authError:'' };
+
+function money(n){ n=Number(n)||0; return n.toLocaleString('en-US',{maximumFractionDigits:0}) + ' ج.م'; }
+function fmtDate(iso){ try{ return new Date(iso).toLocaleDateString('ar-EG',{day:'numeric',month:'short'}); }catch(e){ return ''; } }
+function fmtDateTime(iso){ try{ return new Date(iso).toLocaleDateString('ar-EG',{day:'numeric',month:'short',hour:'numeric',minute:'2-digit'}); }catch(e){ return ''; } }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* ---------------------------------------------------------------
+   تهيئة قاعدة البيانات + تسجيل الدخول (Supabase Auth)
+----------------------------------------------------------------*/
+async function initStorage(){
+  const statusEl = document.getElementById('storage-status');
+
+  if(!SUPABASE_URL || SUPABASE_URL.indexOf('PASTE_YOUR')===0){
+    state.writable = false;
+    authState.checked = true;
+    statusEl.innerHTML = '<span class="dot" style="background:var(--danger)"></span><span>التخزين غير مظبوط بعد</span>';
+    renderRoot();
+    return;
+  }
+
+  try{
+    sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  }catch(e){
+    state.writable = false; authState.checked = true;
+    statusEl.innerHTML = '<span class="dot" style="background:var(--danger)"></span><span>تعذّر الاتصال بقاعدة البيانات</span>';
+    renderRoot();
+    return;
+  }
+
+  sb.auth.onAuthStateChange((_event, session)=>{ handleAuthChange(session); });
+  const { data:{ session } } = await sb.auth.getSession();
+  await handleAuthChange(session);
+}
+
+async function handleAuthChange(session){
+  authState.session = session;
+  authState.checked = true;
+  if(session){
+    await ensureProfile(session.user.id);
+    if(isActive(authState.profile)){
+      await fetchAll();
+      const statusEl = document.getElementById('storage-status');
+      if(statusEl) statusEl.innerHTML = '<span class="dot"></span><span>متصل ويحفظ تلقائيًا</span>';
+    }
+  } else {
+    authState.profile = null;
+    state.customers = []; state.products = []; state.orders = []; state.ready = false;
+  }
+  renderRoot();
+}
+
+async function ensureProfile(uid){
+  try{
+    const { data } = await sb.from('profiles').select('*').eq('id', uid).maybeSingle();
+    if(data){ authState.profile = data; return; }
+    const { data:created } = await sb.from('profiles').insert({ id:uid, trial_start:new Date().toISOString() }).select().maybeSingle();
+    authState.profile = created || { id:uid, trial_start:new Date().toISOString(), paid_until:null };
+  }catch(e){
+    authState.profile = { id:uid, trial_start:new Date().toISOString(), paid_until:null };
+  }
+}
+
+function isActive(profile){
+  if(!profile) return false;
+  const now = Date.now();
+  const trialEnd = new Date(profile.trial_start).getTime() + TRIAL_DAYS*24*60*60*1000;
+  const paidActive = !!profile.paid_until && (new Date(profile.paid_until+'T23:59:59').getTime() >= now);
+  return now < trialEnd || paidActive;
+}
+function trialDaysLeft(profile){
+  const trialEnd = new Date(profile.trial_start).getTime() + TRIAL_DAYS*24*60*60*1000;
+  return Math.max(0, Math.ceil((trialEnd - Date.now())/(24*60*60*1000)));
+}
+async function doLogout(){
+  if(sb) await sb.auth.signOut();
+}
+
+/* ---------------------------------------------------------------
+   شاشة تسجيل الدخول / حساب جديد
+----------------------------------------------------------------*/
+function translateAuthError(msg){
+  msg = msg || '';
+  if(/already registered|already exists/i.test(msg)) return 'الإيميل ده مسجّل بالفعل، جرّب "تسجيل الدخول"';
+  if(/invalid login|invalid credentials/i.test(msg)) return 'الإيميل أو كلمة المرور غلط';
+  if(/confirm/i.test(msg)) return 'لازم تأكّد بريدك الإلكتروني الأول من الرسالة اللي وصلتك';
+  if(/password/i.test(msg)) return 'كلمة المرور لازم تكون 6 أحرف على الأقل';
+  return 'حصل خطأ، حاول تاني';
+}
+
+function renderAuthScreen(){
+  const el = document.getElementById('auth-root');
+  const isLogin = authState.authView==='login';
+  el.innerHTML = `
+    <div class="card auth-card">
+      <div class="brand" style="justify-content:center">
+        <div class="brand-mark">ط</div>
+        <div>
+          <div class="brand-text">إدارة الطلبات</div>
+          <div class="brand-sub">لصاحب المشروع الصغير</div>
+        </div>
+      </div>
+      <div class="auth-tabs">
+        <div class="auth-tab ${isLogin?'active':''}" data-auth-tab="login">تسجيل الدخول</div>
+        <div class="auth-tab ${!isLogin?'active':''}" data-auth-tab="signup">حساب جديد</div>
+      </div>
+      ${authState.authError?`<div class="auth-error">${esc(authState.authError)}</div>`:''}
+      <form id="auth-form" style="display:flex;flex-direction:column;gap:12px">
+        <div class="field"><label>البريد الإلكتروني</label><input name="email" type="email" required placeholder="name@example.com"></div>
+        <div class="field"><label>كلمة المرور</label><input name="password" type="password" required minlength="6" placeholder="6 أحرف على الأقل"></div>
+        <button type="submit" class="btn btn-primary" style="justify-content:center">${isLogin?'دخول':`إنشاء حساب (تجربة ${TRIAL_DAYS} أيام مجانًا)`}</button>
+      </form>
+      <div class="auth-note">${isLogin?'لسه معندكش حساب؟ اضغط "حساب جديد" فوق':`باشتراك شهري ${SUBSCRIPTION_PRICE} بعد انتهاء التجربة المجانية`}</div>
+    </div>`;
+
+  el.querySelectorAll('[data-auth-tab]').forEach(t=>{
+    t.addEventListener('click', ()=>{
+      authState.authView = t.dataset.authTab;
+      authState.authError = '';
+      renderAuthScreen();
+    });
+  });
+
+  document.getElementById('auth-form').addEventListener('submit', async e=>{
+    e.preventDefault();
+    authState.authError = '';
+    const f = new FormData(e.target);
+    const email = (f.get('email')||'').trim();
+    const password = f.get('password')||'';
+    const btn = e.target.querySelector('button[type=submit]');
+    btn.disabled = true;
+    try{
+      if(isLogin){
+        const { error } = await sb.auth.signInWithPassword({ email, password });
+        if(error) throw error;
+      } else {
+        const { error } = await sb.auth.signUp({ email, password });
+        if(error) throw error;
+      }
+    }catch(err){
+      authState.authError = translateAuthError(err && err.message);
+      btn.disabled = false;
+      renderAuthScreen();
+    }
+  });
+}
+
+/* ---------------------------------------------------------------
+   شاشة انتهاء التجربة / الاشتراك
+----------------------------------------------------------------*/
+function renderExpiredScreen(){
+  const el = document.getElementById('expired-root');
+  const p = authState.profile;
+  const wasTrial = !(p && p.paid_until);
+  el.innerHTML = `
+    <div class="card expired-card">
+      <div class="icon-big" style="width:46px;height:46px;color:var(--warn)">${icon('clock')}</div>
+      <h2 style="font-size:18px">${wasTrial?'انتهت فترة التجربة المجانية':'انتهى الاشتراك'}</h2>
+      <p class="row-sub">كمّل استخدام التطبيق باشتراك شهري بسيط</p>
+      <div class="expired-price">${SUBSCRIPTION_PRICE}<span style="font-size:13px;color:var(--ink-muted);font-weight:500"> / شهريًا</span></div>
+      <div class="pay-box">
+        <div><strong>طريقة الدفع:</strong> ${esc(PAYMENT_METHOD)}</div>
+        <div><strong>الرقم:</strong> <span class="tabular">${esc(PAYMENT_PHONE)}</span></div>
+        <div>حوّل المبلغ، وابعت صورة التحويل على <span class="tabular">${esc(SUPPORT_CONTACT)}</span> عشان نفعّل حسابك خلال ساعات.</div>
+      </div>
+      <button class="btn" id="btn-logout-expired">تسجيل الخروج</button>
+    </div>`;
+  const b = document.getElementById('btn-logout-expired');
+  if(b) b.addEventListener('click', doLogout);
+}
+
+/* ---------------------------------------------------------------
+   الموزّع الرئيسي بين شاشات الدخول/الاشتراك/التطبيق
+----------------------------------------------------------------*/
+function renderRoot(){
+  const appEl = document.getElementById('app-shell');
+  const authEl = document.getElementById('auth-root');
+  const expiredEl = document.getElementById('expired-root');
+
+  if(!authState.checked){
+    appEl.hidden = true; authEl.hidden = true; expiredEl.hidden = true;
+    return;
+  }
+  if(!sb){
+    appEl.hidden = false; authEl.hidden = true; expiredEl.hidden = true;
+    state.ready = true;
+    render();
+    return;
+  }
+  if(!authState.session){
+    appEl.hidden = true; expiredEl.hidden = true; authEl.hidden = false;
+    renderAuthScreen();
+    return;
+  }
+  if(!isActive(authState.profile)){
+    appEl.hidden = true; authEl.hidden = true; expiredEl.hidden = false;
+    renderExpiredScreen();
+    return;
+  }
+  appEl.hidden = false; authEl.hidden = true; expiredEl.hidden = true;
+  render();
+}
+
+async function fetchAll(){
+  try{
+    const [c,p,o] = await Promise.all([
+      sb.from('customers').select('*').order('created_at',{ascending:false}),
+      sb.from('products').select('*').order('created_at',{ascending:false}),
+      sb.from('orders').select('*').order('created_at',{ascending:false}),
+    ]);
+    if(c.error || p.error || o.error) throw (c.error||p.error||o.error);
+    state.customers = (c.data||[]).map(normCustomer);
+    state.products  = (p.data||[]).map(normProduct);
+    state.orders    = (o.data||[]).map(normOrder);
+    state.ready = true;
+    render();
+  }catch(e){
+    state.ready = true;
+    state.writable = false;
+    const statusEl = document.getElementById('storage-status');
+    statusEl.innerHTML = '<span class="dot" style="background:var(--danger)"></span><span>تعذّر تحميل البيانات</span>';
+    render();
+  }
+}
+function normCustomer(r){ return {id:r.id, name:r.name, phone:r.phone, address:r.address, createdAt:r.created_at}; }
+function normProduct(r){ return {id:r.id, name:r.name, price:r.price, stock:r.stock, unit:r.unit, createdAt:r.created_at}; }
+function normOrder(r){ return {id:r.id, customerId:r.customer_id, customerName:r.customer_name, customerPhone:r.customer_phone, items:r.items||[], total:r.total, status:r.status, notes:r.notes, createdAt:r.created_at}; }
+
+/* ---------------------------------------------------------------
+   عمليات الكتابة (CRUD)
+----------------------------------------------------------------*/
+async function createCustomer(data){
+  await sb.from('customers').insert({name:data.name, phone:data.phone, address:data.address});
+  await fetchAll();
+}
+async function updateCustomer(id, data){
+  await sb.from('customers').update({name:data.name, phone:data.phone, address:data.address}).eq('id', id);
+  await fetchAll();
+}
+async function deleteCustomer(id){
+  await sb.from('customers').delete().eq('id', id);
+  await fetchAll();
+}
+
+async function createProduct(data){
+  await sb.from('products').insert({name:data.name, price:data.price, stock:data.stock, unit:data.unit});
+  await fetchAll();
+}
+async function updateProduct(id, data){
+  await sb.from('products').update({name:data.name, price:data.price, stock:data.stock, unit:data.unit}).eq('id', id);
+  await fetchAll();
+}
+async function deleteProduct(id){
+  await sb.from('products').delete().eq('id', id);
+  await fetchAll();
+}
+
+async function createOrder(data){
+  await sb.from('orders').insert({
+    customer_id:data.customerId, customer_name:data.customerName, customer_phone:data.customerPhone,
+    items:data.items, total:data.total, status:data.status, notes:data.notes,
+  });
+  for(const item of data.items){
+    const p = state.products.find(x=>x.id===item.productId);
+    if(p){
+      const newStock = Math.max(0, (Number(p.stock)||0) - Number(item.qty||0));
+      await sb.from('products').update({stock:newStock}).eq('id', p.id);
+    }
+  }
+  await fetchAll();
+}
+async function updateOrderStatus(id, status){
+  await sb.from('orders').update({status}).eq('id', id);
+  await fetchAll();
+}
+async function deleteOrder(id){
+  await sb.from('orders').delete().eq('id', id);
+  await fetchAll();
+}
+
+/* ---------------------------------------------------------------
+   أدوات اشتقاق البيانات
+----------------------------------------------------------------*/
+function isToday(iso){ const d=new Date(iso), t=new Date(); return d.getFullYear()===t.getFullYear() && d.getMonth()===t.getMonth() && d.getDate()===t.getDate(); }
+function isThisMonth(iso){ const d=new Date(iso), t=new Date(); return d.getFullYear()===t.getFullYear() && d.getMonth()===t.getMonth(); }
+function activeOrders(){ return state.orders.filter(o=>o.status!=='cancelled'); }
+
+function revenueByDay(days){
+  const buckets = [];
+  for(let i=days-1;i>=0;i--){
+    const d = new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()-i);
+    buckets.push({date:d, total:0, label:d.toLocaleDateString('ar-EG',{weekday:'short'})});
+  }
+  activeOrders().forEach(o=>{
+    const od = new Date(o.createdAt); od.setHours(0,0,0,0);
+    const b = buckets.find(x=>x.date.getTime()===od.getTime());
+    if(b) b.total += Number(o.total)||0;
+  });
+  return buckets;
+}
+function topProducts(limit){
+  const map = {};
+  activeOrders().forEach(o=>(o.items||[]).forEach(it=>{
+    map[it.name] = (map[it.name]||0) + (Number(it.price)||0)*(Number(it.qty)||0);
+  }));
+  return Object.entries(map).map(([name,total])=>({name,total})).sort((a,b)=>b.total-a.total).slice(0,limit);
+}
+function statusCounts(){
+  const c = {}; STATUS_ORDER.forEach(s=>c[s]=0);
+  state.orders.forEach(o=>{ c[o.status]=(c[o.status]||0)+1; });
+  return c;
+}
+
+/* ---------------------------------------------------------------
+   عناصر واجهة مشتركة
+----------------------------------------------------------------*/
+function emptyState(iconName, title, sub){
+  return `<div class="card empty">
+    <div class="icon-big" style="color:var(--ink-muted)">${icon(iconName)}</div>
+    <strong>${esc(title)}</strong>
+    <div>${esc(sub)}</div>
+  </div>`;
+}
+function statusPill(status){ const s = STATUS[status] || STATUS.new; return `<span class="pill ${s.cls}">${s.label}</span>`; }
+function bars(buckets){
+  const max = Math.max(1, ...buckets.map(b=>b.total));
+  return `<div class="bars ${buckets.length>10?'many':''}">${buckets.map(b=>`
+    <div class="bar-col">
+      <div class="bar-track"><div class="bar-fill" style="height:${Math.max(4,(b.total/max)*100)}%"></div></div>
+      <div class="bar-value tabular">${b.total?money(b.total).replace(' ج.م',''):''}</div>
+      <div class="bar-label">${esc(b.label)}</div>
+    </div>`).join('')}</div>`;
+}
+function hbars(rows){
+  const max = Math.max(1, ...rows.map(r=>r.total));
+  return rows.map(r=>`
+    <div class="hbar-row">
+      <div class="hbar-name">${esc(r.name)}</div>
+      <div class="hbar-track"><div class="hbar-fill" style="width:${Math.max(4,(r.total/max)*100)}%"></div></div>
+      <div class="hbar-value tabular">${money(r.total)}</div>
+    </div>`).join('');
+}
+
+/* ---------------------------------------------------------------
+   عرض: لوحة التحكم
+----------------------------------------------------------------*/
+function viewDashboard(){
+  const todayOrders = state.orders.filter(o=>isToday(o.createdAt));
+  const monthRevenue = activeOrders().filter(o=>isThisMonth(o.createdAt)).reduce((s,o)=>s+(Number(o.total)||0),0);
+  const pending = state.orders.filter(o=>o.status==='new'||o.status==='processing').length;
+  const lowStock = state.products.filter(p=>Number(p.stock)<=5).length;
+  const recent = state.orders.slice(0,5);
+  const week = revenueByDay(7);
+
+  const kpis = `<div class="grid kpis">
+    <div class="card kpi">
+      <div class="kpi-top"><span class="kpi-label">طلبات اليوم</span>
+        <span class="kpi-icon" style="background:var(--accent-soft);color:var(--accent)">${icon('orders')}</span></div>
+      <div class="kpi-value tabular">${todayOrders.length}</div>
+      <div class="kpi-sub">من إجمالي ${state.orders.length} طلب</div>
+    </div>
+    <div class="card kpi">
+      <div class="kpi-top"><span class="kpi-label">إيراد الشهر</span>
+        <span class="kpi-icon" style="background:var(--success-soft);color:var(--success)">${icon('cash')}</span></div>
+      <div class="kpi-value tabular">${money(monthRevenue)}</div>
+      <div class="kpi-sub">من الطلبات غير الملغاة</div>
+    </div>
+    <div class="card kpi">
+      <div class="kpi-top"><span class="kpi-label">طلبات قيد الانتظار</span>
+        <span class="kpi-icon" style="background:var(--warn-soft);color:var(--warn)">${icon('clock')}</span></div>
+      <div class="kpi-value tabular">${pending}</div>
+      <div class="kpi-sub">جديدة أو قيد التجهيز</div>
+    </div>
+    <div class="card kpi">
+      <div class="kpi-top"><span class="kpi-label">منتجات منخفضة المخزون</span>
+        <span class="kpi-icon" style="background:var(--danger-soft);color:var(--danger)">${icon('warn')}</span></div>
+      <div class="kpi-value tabular">${lowStock}</div>
+      <div class="kpi-sub">5 قطع أو أقل</div>
+    </div>
+  </div>`;
+
+  const chart = `<div class="card" style="padding:18px 18px 10px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <h3 style="font-size:13.5px">مبيعات آخر 7 أيام</h3>
+      <span class="row-sub">${money(week.reduce((s,b)=>s+b.total,0))} إجمالي</span>
+    </div>
+    ${bars(week)}
+  </div>`;
+
+  const recentTable = recent.length ? `<div class="card table-wrap"><table>
+    <thead><tr><th>العميل</th><th>المنتجات</th><th>الإجمالي</th><th>الحالة</th><th>التاريخ</th></tr></thead>
+    <tbody>${recent.map(o=>`
+      <tr>
+        <td class="row-main">${esc(o.customerName)}</td>
+        <td>${(o.items||[]).length} صنف</td>
+        <td class="tabular">${money(o.total)}</td>
+        <td>${statusPill(o.status)}</td>
+        <td class="row-sub tabular">${fmtDateTime(o.createdAt)}</td>
+      </tr>`).join('')}
+    </tbody></table></div>` : emptyState('orders','لا توجد طلبات بعد','أضف أول طلب من تبويب الطلبات');
+
+  return `${kpis}${chart}
+    <div class="section-head"><h2>أحدث الطلبات</h2><span class="link" data-nav="orders">عرض الكل</span></div>
+    ${recentTable}`;
+}
+
+/* ---------------------------------------------------------------
+   عرض: الطلبات
+----------------------------------------------------------------*/
+function viewOrders(){
+  if(!state.customers.length || !state.products.length){
+    return emptyState('customers','أضف عميلًا ومنتجًا أولًا','لإنشاء طلب تحتاج عميلًا واحدًا على الأقل ومنتجًا واحدًا في المخزون');
+  }
+  let list = state.orders.slice();
+  if(state.orderFilter!=='all') list = list.filter(o=>o.status===state.orderFilter);
+  if(state.orderSearch.trim()){
+    const q = state.orderSearch.trim();
+    list = list.filter(o=>(o.customerName||'').includes(q) || (o.customerPhone||'').includes(q));
+  }
+
+  const chips = ['all',...STATUS_ORDER].map(s=>{
+    const label = s==='all' ? 'الكل' : STATUS[s].label;
+    return `<button class="chip ${state.orderFilter===s?'active':''}" data-filter="${s}">${label}</button>`;
+  }).join('');
+
+  const toolbar = `<div class="toolbar">
+    <div class="search"><span class="icon">${icon('search')}</span>
+      <input id="order-search" type="text" placeholder="ابحث باسم العميل أو رقم التليفون" value="${esc(state.orderSearch)}">
+    </div>
+    <div class="chip-filter">${chips}</div>
+  </div>`;
+
+  const table = list.length ? `<div class="card table-wrap"><table>
+    <thead><tr><th>العميل</th><th>التليفون</th><th>الأصناف</th><th>الإجمالي</th><th>الحالة</th><th>التاريخ</th><th></th></tr></thead>
+    <tbody>${list.map(o=>`
+      <tr>
+        <td class="row-main">${esc(o.customerName)}</td>
+        <td class="row-sub tabular">${esc(o.customerPhone||'—')}</td>
+        <td>${(o.items||[]).map(i=>esc(i.name)).join('، ')}</td>
+        <td class="tabular">${money(o.total)}</td>
+        <td>
+          <select class="status-select" data-order-id="${o.id}" style="border:1px solid var(--border);border-radius:7px;padding:4px 6px;font-size:11.5px;background:var(--surface);color:var(--ink)">
+            ${STATUS_ORDER.map(s=>`<option value="${s}" ${o.status===s?'selected':''}>${STATUS[s].label}</option>`).join('')}
+          </select>
+        </td>
+        <td class="row-sub tabular">${fmtDateTime(o.createdAt)}</td>
+        <td class="cell-actions"><button class="btn btn-ghost btn-sm" data-del-order="${o.id}" title="حذف"><span class="icon">${icon('trash')}</span></button></td>
+      </tr>`).join('')}
+    </tbody></table></div>` : emptyState('orders','لا توجد طلبات مطابقة','جرّب تغيير الفلتر أو أضف طلبًا جديدًا');
+
+  return toolbar + table;
+}
+
+/* ---------------------------------------------------------------
+   عرض: العملاء
+----------------------------------------------------------------*/
+function viewCustomers(){
+  if(!state.customers.length){
+    return emptyState('customers','لا يوجد عملاء بعد','اضغط "عميل جديد" لإضافة أول عميل');
+  }
+  const rows = state.customers.map(c=>{
+    const orders = state.orders.filter(o=>o.customerId===c.id);
+    const spent = orders.filter(o=>o.status!=='cancelled').reduce((s,o)=>s+(Number(o.total)||0),0);
+    return {...c, orderCount:orders.length, spent};
+  });
+  return `<div class="card table-wrap"><table>
+    <thead><tr><th>العميل</th><th>التليفون</th><th>العنوان</th><th>عدد الطلبات</th><th>إجمالي الشراء</th><th></th></tr></thead>
+    <tbody>${rows.map(c=>`
+      <tr>
+        <td class="row-main">${esc(c.name)}</td>
+        <td class="tabular">${esc(c.phone||'—')}</td>
+        <td class="row-sub">${esc(c.address||'—')}</td>
+        <td class="tabular">${c.orderCount}</td>
+        <td class="tabular">${money(c.spent)}</td>
+        <td class="cell-actions">
+          <button class="btn btn-ghost btn-sm" data-edit-customer="${c.id}" title="تعديل"><span class="icon">${icon('edit')}</span></button>
+          <button class="btn btn-ghost btn-sm" data-del-customer="${c.id}" title="حذف"><span class="icon">${icon('trash')}</span></button>
+        </td>
+      </tr>`).join('')}
+    </tbody></table></div>`;
+}
+
+/* ---------------------------------------------------------------
+   عرض: المخزون
+----------------------------------------------------------------*/
+function viewInventory(){
+  if(!state.products.length){
+    return emptyState('inventory','لا توجد منتجات بعد','اضغط "منتج جديد" لإضافة أول منتج للمخزون');
+  }
+  return `<div class="card table-wrap"><table>
+    <thead><tr><th>المنتج</th><th>السعر</th><th>الكمية المتاحة</th><th>الوحدة</th><th></th></tr></thead>
+    <tbody>${state.products.map(p=>`
+      <tr>
+        <td class="row-main">${esc(p.name)}</td>
+        <td class="tabular">${money(p.price)}</td>
+        <td class="tabular ${Number(p.stock)<=5?'stock-low':'stock-ok'}">${p.stock}${Number(p.stock)<=5?' ⚠':''}</td>
+        <td class="row-sub">${esc(p.unit||'قطعة')}</td>
+        <td class="cell-actions">
+          <button class="btn btn-ghost btn-sm" data-edit-product="${p.id}" title="تعديل"><span class="icon">${icon('edit')}</span></button>
+          <button class="btn btn-ghost btn-sm" data-del-product="${p.id}" title="حذف"><span class="icon">${icon('trash')}</span></button>
+        </td>
+      </tr>`).join('')}
+    </tbody></table></div>`;
+}
+
+/* ---------------------------------------------------------------
+   عرض: التقارير
+----------------------------------------------------------------*/
+function viewReports(){
+  const two = revenueByDay(14);
+  const counts = statusCounts();
+  const top = topProducts(5);
+  const colorFor = s => s==='new'?'info':s==='processing'?'warn':s==='ready'?'accent':s==='delivered'?'success':'danger';
+
+  const statusCards = STATUS_ORDER.map(s=>`
+    <div class="status-card" style="background:var(--${colorFor(s)}-soft);color:var(--${colorFor(s)})">
+      <div class="n tabular">${counts[s]||0}</div>
+      <div class="l">${STATUS[s].label}</div>
+    </div>`).join('');
+
+  return `
+    <div class="card" style="padding:18px 18px 10px;margin-bottom:16px">
+      <h3 style="font-size:13.5px;margin-bottom:6px">المبيعات خلال آخر 14 يومًا</h3>
+      ${bars(two)}
+    </div>
+    <div class="two-col">
+      <div class="card" style="padding:18px">
+        <h3 style="font-size:13.5px;margin-bottom:4px">الأكثر مبيعًا</h3>
+        ${top.length ? hbars(top) : '<p class="row-sub">لا توجد مبيعات مسجّلة بعد</p>'}
+      </div>
+      <div class="card" style="padding:18px">
+        <h3 style="font-size:13.5px;margin-bottom:12px">حالة الطلبات</h3>
+        <div class="status-grid">${statusCards}</div>
+      </div>
+    </div>`;
+}
+
+/* ---------------------------------------------------------------
+   المودالات (نماذج الإضافة/التعديل)
+----------------------------------------------------------------*/
+function openModal(html){
+  document.getElementById('modal').innerHTML = html;
+  document.getElementById('overlay').classList.add('open');
+}
+function closeModal(){
+  document.getElementById('overlay').classList.remove('open');
+  setTimeout(()=>{ document.getElementById('modal').innerHTML=''; }, 150);
+}
+
+function modalCustomer(existing){
+  const isEdit = !!existing;
+  openModal(`
+    <div class="modal-head"><h3>${isEdit?'تعديل بيانات العميل':'عميل جديد'}</h3>
+      <button class="btn btn-ghost btn-sm" data-close><span class="icon">${icon('close')}</span></button></div>
+    <form id="customer-form" class="modal-body">
+      <div class="field"><label>الاسم</label><input name="name" required value="${esc(existing?.name||'')}" placeholder="مثال: أحمد محمد"></div>
+      <div class="field-row">
+        <div class="field"><label>رقم التليفون</label><input name="phone" value="${esc(existing?.phone||'')}" placeholder="01xxxxxxxxx"></div>
+        <div class="field"><label>العنوان</label><input name="address" value="${esc(existing?.address||'')}" placeholder="الحي / المدينة"></div>
+      </div>
+      <div class="modal-foot" style="padding:0">
+        <button type="button" class="btn" data-close>إلغاء</button>
+        <button type="submit" class="btn btn-primary">${isEdit?'حفظ التعديلات':'إضافة العميل'}</button>
+      </div>
+    </form>`);
+  document.getElementById('customer-form').addEventListener('submit', async e=>{
+    e.preventDefault();
+    const f = new FormData(e.target);
+    const data = {name:f.get('name').trim(), phone:f.get('phone').trim(), address:f.get('address').trim()};
+    if(!data.name) return;
+    if(isEdit) await updateCustomer(existing.id, data); else await createCustomer(data);
+    closeModal();
+  });
+}
+
+function modalProduct(existing){
+  const isEdit = !!existing;
+  openModal(`
+    <div class="modal-head"><h3>${isEdit?'تعديل المنتج':'منتج جديد'}</h3>
+      <button class="btn btn-ghost btn-sm" data-close><span class="icon">${icon('close')}</span></button></div>
+    <form id="product-form" class="modal-body">
+      <div class="field"><label>اسم المنتج</label><input name="name" required value="${esc(existing?.name||'')}" placeholder="مثال: توتة شوكولاتة"></div>
+      <div class="field-row">
+        <div class="field"><label>السعر (ج.م)</label><input name="price" type="number" min="0" step="0.01" required value="${existing?.price??''}"></div>
+        <div class="field"><label>الوحدة</label><select name="unit">${UNITS.map(u=>`<option ${existing?.unit===u?'selected':''}>${u}</option>`).join('')}</select></div>
+      </div>
+      <div class="field"><label>الكمية المتاحة</label><input name="stock" type="number" min="0" step="1" required value="${existing?.stock??''}"></div>
+      <div class="modal-foot" style="padding:0">
+        <button type="button" class="btn" data-close>إلغاء</button>
+        <button type="submit" class="btn btn-primary">${isEdit?'حفظ التعديلات':'إضافة المنتج'}</button>
+      </div>
+    </form>`);
+  document.getElementById('product-form').addEventListener('submit', async e=>{
+    e.preventDefault();
+    const f = new FormData(e.target);
+    const data = {name:f.get('name').trim(), price:Number(f.get('price')), unit:f.get('unit'), stock:Number(f.get('stock'))};
+    if(!data.name) return;
+    if(isEdit) await updateProduct(existing.id, data); else await createProduct(data);
+    closeModal();
+  });
+}
+
+function modalOrder(){
+  if(!state.customers.length || !state.products.length) return;
+  let rows = [{productId:state.products[0].id, qty:1}];
+
+  function itemRowHtml(row, idx){
+    return `<div class="item-row" data-idx="${idx}">
+      <select class="item-product">
+        ${state.products.map(p=>`<option value="${p.id}" ${row.productId===p.id?'selected':''}>${esc(p.name)} — ${money(p.price)}</option>`).join('')}
+      </select>
+      <input class="item-qty" type="number" min="1" step="1" value="${row.qty}">
+      <div class="item-sub tabular row-sub" style="text-align:left;padding-left:4px"></div>
+      <button type="button" class="remove-row" data-remove="${idx}">${icon('close')}</button>
+    </div>`;
+  }
+  function renderItems(){
+    const wrap = document.getElementById('order-items');
+    if(!wrap) return;
+    wrap.innerHTML = rows.map(itemRowHtml).join('');
+    updateSubtotals();
+  }
+  function updateSubtotals(){
+    let total = 0;
+    document.querySelectorAll('#order-items .item-row').forEach((rowEl)=>{
+      const pid = rowEl.querySelector('.item-product').value;
+      const qty = Number(rowEl.querySelector('.item-qty').value)||0;
+      const p = state.products.find(x=>x.id===pid);
+      const sub = (p?Number(p.price):0)*qty;
+      rowEl.querySelector('.item-sub').textContent = money(sub);
+      total += sub;
+    });
+    const totalEl = document.getElementById('order-total-value');
+    if(totalEl) totalEl.textContent = money(total);
+  }
+
+  openModal(`
+    <div class="modal-head"><h3>طلب جديد</h3>
+      <button class="btn btn-ghost btn-sm" data-close><span class="icon">${icon('close')}</span></button></div>
+    <form id="order-form" class="modal-body">
+      <div class="field"><label>العميل</label>
+        <select name="customerId" id="order-customer">
+          ${state.customers.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field">
+        <label>الأصناف</label>
+        <div id="order-items" style="display:flex;flex-direction:column;gap:8px"></div>
+        <button type="button" class="btn btn-sm" id="add-item-row" style="align-self:flex-start;margin-top:4px">
+          <span class="icon">${icon('plus')}</span> إضافة صنف
+        </button>
+      </div>
+      <div class="field"><label>ملاحظات (اختياري)</label><textarea name="notes" rows="2" placeholder="مواعيد تسليم أو طلبات خاصة"></textarea></div>
+      <div class="items-total"><span>الإجمالي</span><span id="order-total-value" class="tabular">0 ج.م</span></div>
+      <div class="modal-foot" style="padding:0">
+        <button type="button" class="btn" data-close>إلغاء</button>
+        <button type="submit" class="btn btn-primary">إنشاء الطلب</button>
+      </div>
+    </form>`);
+
+  renderItems();
+
+  document.getElementById('add-item-row').addEventListener('click', ()=>{
+    rows.push({productId:state.products[0].id, qty:1});
+    renderItems();
+  });
+  document.getElementById('order-items').addEventListener('click', e=>{
+    const btn = e.target.closest('[data-remove]');
+    if(!btn) return;
+    const idx = Number(btn.dataset.remove);
+    if(rows.length>1){ rows.splice(idx,1); renderItems(); }
+  });
+  document.getElementById('order-items').addEventListener('input', e=>{
+    const rowEl = e.target.closest('.item-row');
+    if(!rowEl) return;
+    const idx = Number(rowEl.dataset.idx);
+    if(e.target.classList.contains('item-product')) rows[idx].productId = e.target.value;
+    if(e.target.classList.contains('item-qty')) rows[idx].qty = Math.max(1, Number(e.target.value)||1);
+    updateSubtotals();
+  });
+  document.getElementById('order-items').addEventListener('change', e=>{
+    if(e.target.classList.contains('item-product')){
+      const rowEl = e.target.closest('.item-row');
+      const idx = Number(rowEl.dataset.idx);
+      rows[idx].productId = e.target.value;
+      updateSubtotals();
+    }
+  });
+
+  document.getElementById('order-form').addEventListener('submit', async e=>{
+    e.preventDefault();
+    const f = new FormData(e.target);
+    const customerId = f.get('customerId');
+    const customer = state.customers.find(c=>c.id===customerId);
+    const items = rows.map(r=>{
+      const p = state.products.find(x=>x.id===r.productId);
+      return {productId:r.productId, name:p?p.name:'', qty:r.qty, price:p?Number(p.price):0};
+    }).filter(it=>it.qty>0);
+    if(!items.length || !customer) return;
+    const total = items.reduce((s,it)=>s+it.qty*it.price,0);
+    await createOrder({
+      customerId, customerName:customer.name, customerPhone:customer.phone||'',
+      items, total, status:'new', notes:(f.get('notes')||'').trim()
+    });
+    closeModal();
+  });
+}
+
+/* ---------------------------------------------------------------
+   أزرار شريط العنوان لكل تبويب
+----------------------------------------------------------------*/
+function renderPageActions(){
+  const el = document.getElementById('page-actions');
+  if(state.view==='orders'){
+    const canOrder = state.writable && state.customers.length && state.products.length;
+    el.innerHTML = `<button class="btn btn-primary" id="btn-new-order" ${canOrder?'':'disabled style="opacity:.5;cursor:not-allowed"'} title="${canOrder?'':'أضف عميلًا ومنتجًا أولًا'}"><span class="icon">${icon('plus')}</span> طلب جديد</button>`;
+    const b = document.getElementById('btn-new-order');
+    if(b && canOrder) b.addEventListener('click', ()=>modalOrder());
+  } else if(state.view==='customers'){
+    el.innerHTML = `<button class="btn btn-primary" id="btn-new-customer" ${state.writable?'':'disabled style="opacity:.5"'}><span class="icon">${icon('plus')}</span> عميل جديد</button>`;
+    const b = document.getElementById('btn-new-customer');
+    if(b && state.writable) b.addEventListener('click', ()=>modalCustomer(null));
+  } else if(state.view==='inventory'){
+    el.innerHTML = `<button class="btn btn-primary" id="btn-new-product" ${state.writable?'':'disabled style="opacity:.5"'}><span class="icon">${icon('plus')}</span> منتج جديد</button>`;
+    const b = document.getElementById('btn-new-product');
+    if(b && state.writable) b.addEventListener('click', ()=>modalProduct(null));
+  } else {
+    el.innerHTML = '';
+  }
+}
+
+/* ---------------------------------------------------------------
+   التنقل والعرض الرئيسي
+----------------------------------------------------------------*/
+function renderNav(){
+  document.getElementById('nav').innerHTML = NAV.map(n=>`
+    <div class="nav-item ${state.view===n.id?'active':''}" data-nav="${n.id}">
+      <span class="nav-icon">${icon(n.icon)}</span><span class="nav-label">${n.label}</span>
+    </div>`).join('');
+  document.getElementById('mobile-nav').innerHTML = NAV.map(n=>`
+    <div class="mobile-tab ${state.view===n.id?'active':''}" data-nav="${n.id}">
+      <span class="icon">${icon(n.icon)}</span><span>${n.label}</span>
+    </div>`).join('');
+}
+
+function setView(v){
+  state.view = v;
+  try{ localStorage.setItem('om_last_view', v); }catch(e){}
+  render();
+}
+
+function render(){
+  renderNav();
+  const meta = NAV.find(n=>n.id===state.view) || NAV[0];
+  document.getElementById('page-title').textContent = meta.label;
+  document.getElementById('page-sub').textContent = meta.sub;
+  renderPageActions();
+
+  let html = '';
+  if(!state.ready){
+    html = `<div class="empty"><div class="icon-big">${icon('dashboard')}</div><strong>جاري تحميل البيانات…</strong></div>`;
+  } else if(state.view==='dashboard') html = viewDashboard();
+  else if(state.view==='orders') html = viewOrders();
+  else if(state.view==='customers') html = viewCustomers();
+  else if(state.view==='inventory') html = viewInventory();
+  else if(state.view==='reports') html = viewReports();
+
+  if(!state.writable){
+    const msg = (!SUPABASE_URL || SUPABASE_URL.indexOf('PASTE_YOUR')===0)
+      ? 'لازم تظبط بيانات الاتصال بقاعدة البيانات في أول الكود (SUPABASE_URL و SUPABASE_ANON_KEY) قبل ما تنشر الموقع.'
+      : 'تعذّر الاتصال بقاعدة البيانات. تأكد من صحة الرابط والمفتاح، ومن إنشاء الجداول بالكود اللي اتبعتلك.';
+    html = `<div class="banner danger">${icon('warn')} ${msg}</div>` + html;
+  } else if(authState.profile && !authState.profile.paid_until){
+    const left = trialDaysLeft(authState.profile);
+    html = `<div class="trial-banner"><span>باقي ${left} ${left===1?'يوم':'أيام'} من التجربة المجانية</span><span class="tabular">${SUBSCRIPTION_PRICE} شهريًا بعدها</span></div>` + html;
+  }
+
+  document.getElementById('view-root').innerHTML = html;
+
+  const searchInput = document.getElementById('order-search');
+  if(searchInput){
+    searchInput.addEventListener('input', e=>{ state.orderSearch = e.target.value; renderOrdersOnly(); });
+  }
+}
+
+function renderOrdersOnly(){
+  const root = document.getElementById('view-root');
+  if(state.view!=='orders' || !root) return;
+  const hadFocus = document.activeElement===document.getElementById('order-search');
+  root.innerHTML = viewOrders();
+  const input = document.getElementById('order-search');
+  if(input){
+    input.addEventListener('input', e=>{ state.orderSearch = e.target.value; renderOrdersOnly(); });
+    if(hadFocus){ input.focus(); input.selectionStart = input.selectionEnd = input.value.length; }
+  }
+}
+
+/* ---------------------------------------------------------------
+   تفويض الأحداث (Event delegation)
+----------------------------------------------------------------*/
+document.addEventListener('click', e=>{
+  if(e.target.closest('#btn-logout')){ doLogout(); return; }
+  const navEl = e.target.closest('[data-nav]');
+  if(navEl){ setView(navEl.dataset.nav); return; }
+  if(e.target.closest('[data-close]')){ closeModal(); return; }
+
+  const filterEl = e.target.closest('[data-filter]');
+  if(filterEl){ state.orderFilter = filterEl.dataset.filter; renderOrdersOnly(); return; }
+
+  const editCustomer = e.target.closest('[data-edit-customer]');
+  if(editCustomer){
+    const c = state.customers.find(x=>x.id===editCustomer.dataset.editCustomer);
+    if(c) modalCustomer(c);
+    return;
+  }
+  const delCustomer = e.target.closest('[data-del-customer]');
+  if(delCustomer){ deleteCustomer(delCustomer.dataset.delCustomer); return; }
+
+  const editProduct = e.target.closest('[data-edit-product]');
+  if(editProduct){
+    const p = state.products.find(x=>x.id===editProduct.dataset.editProduct);
+    if(p) modalProduct(p);
+    return;
+  }
+  const delProduct = e.target.closest('[data-del-product]');
+  if(delProduct){ deleteProduct(delProduct.dataset.delProduct); return; }
+
+  const delOrder = e.target.closest('[data-del-order]');
+  if(delOrder){ deleteOrder(delOrder.dataset.delOrder); return; }
+});
+
+document.addEventListener('change', e=>{
+  if(e.target.classList.contains('status-select')){
+    updateOrderStatus(e.target.dataset.orderId, e.target.value);
+  }
+});
+
+document.getElementById('overlay').addEventListener('click', e=>{
+  if(e.target.id==='overlay') closeModal();
+});
+document.addEventListener('keydown', e=>{
+  if(e.key==='Escape') closeModal();
+});
+
+/* ---------------------------------------------------------------
+   بدء التشغيل
+----------------------------------------------------------------*/
+renderNav();
+initStorage();
+
+})();
+</script>
+</body>
+</html>
